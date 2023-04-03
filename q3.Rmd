@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, cache = FALSE, echo = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  tidy = TRUE
+)
+file_path <- file.path("~", "Library", "CloudStorage", "OneDrive-TheUniversityofWesternAustralia", "STAT4064", fsep = .Platform$file.sep)
+# knitr::opts_knit$set(root.dir = "~/Library/CloudStorage/OneDrive-TheUniversityofWesternAustralia/UWA/2023/STAT4064")
+knitr::opts_knit$set(root.dir = file_path)
+getwd()
+```
+
+```{r, eval = FALSE, echo = TRUE, results = 'hide'}
+library(ISLR2) ## For some datasets
+library(MASS) ## For lda()
+library(class) ## For knn()
+library(graphics)
+library(ggplot2)
+library(caret)
+library(gtsummary)
+library(plyr)
+library(tidyverse)
+library(broom)
+library(patchwork)
+library(reshape2)
+library(tidyverse)
+library(GGally)
+library(ggpubr)
+library(qqplotr)
+library(ggfortify)
+library(Hmisc)
+library(vtable)
+library(AER)
+library(moments)
+library(Matrix)
+```
+
+3. Consider the Auto data and the variables acceleration,displacement,horsepower, weight, and mpg. In items (3b) – (3e) we use lda with the default proportions for classification.
+```{r}
+str(Auto)
+summary(Auto)
+```
+
+
+(a) [1 marks] Create a new qualitative variable mpgclass with categories ‘low’, ‘medium’ and ‘high’ as follows:
+mpgclass is ‘low’ if mpg < 20
+mpgclass is ‘medium’ if 20 ≤ mpg < 27
+mpgclass is ‘high’ if mpg ≥ 27.
+Present the proportion of each category.
+```{r}
+Auto$mpgclass <- ifelse(Auto$mpg < 20, 'low',
+                             ifelse(Auto$mpg < 27, 'medium', 'high'))
+prop.table(table(Auto$mpgclass))
+Auto$mpgclass <- factor(Auto$mpgclass,
+                            levels = c('low', 'medium', 'high'),
+                            ordered = T)
+# To present the proportion of each category
+prop.table(table(Auto$mpgclass))
+```
+
+```{r}
+str(Auto)
+summary(Auto)
+```
+
+
+(b) [2 marks] Use acceleration, displacement, horsepower and weight as predictors (X), and mpgclass as the class labels (Y ). Perform an LDA and determine the classification error on the data and show its confusion matrix.
+```{r}
+lda.fit.all <- lda(mpgclass ~ acceleration + displacement + horsepower + weight, data = Auto)
+lda.pred.all <- predict(lda.fit.all, type="response")
+table(lda.pred.all$class, Auto$mpgclass)
+mean(lda.pred.all$class != as.character(Auto$mpgclass))
+```
+
+(c) [2 marks] Extract a data set considering only the cars from the year 75, and consider it as a test data. Apply the rule constructed in part (3b) to the this test data. Calculate and show the test error and display your results in a confusion matrix.
+```{r}
+test <- subset(Auto, year == 75)
+lda.pred.all.test <- predict(lda.fit.all, newdata = test, type="response")
+table(lda.pred.all.test$class, test$mpgclass)
+mean(lda.pred.all.test$class != as.character(test$mpgclass))
+```
+
+(d) [2 marks] Consider the test data from item (3c), cars from the year 75, and construct a training data with cars from all other year. Perform classification on the training data and calculate the error on the training data. Show the training error and the the confusion matrix for the training error.
+```{r}
+train <- subset(Auto, year != 75)
+lda.fit.train <- lda(mpgclass ~ acceleration + displacement + horsepower + weight, data = train)
+lda.pred.train <- predict(lda.fit.train, type="response")
+table(lda.pred.train$class, train$mpgclass)
+mean(lda.pred.train$class != as.character(train$mpgclass))
+```
+
+(e) [2 marks] Consider the training and test data from item (3d), and use the classification rule obtained there (3d) to predict the class membership of the cars in the test data. State your test error and display the results obtained on the test data in a confusion matrix.
+```{r}
+lda.pred.train.test <- predict(lda.fit.train, newdata = test, type="response")
+table(lda.pred.train.test$class, test$mpgclass)
+mean(lda.pred.train.test$class != as.character(test$mpgclass))
+```
+
+(f) [3 marks] Compare the results of items (3b)–(3e) and comment on the various errors and confusion matrices. Explain why we expect the test error in item (3c) to be smaller than that obtained in part (3e).
+
+The LDA model trained on the entire dataset has a classification error of 0.258 whereas the model trained on the dataset excluding the year 75 has a classification error of 0.276. The confusion matrices of the two models reveal that they both correctly classified the same amount of high-category data, but the model trained on the partial dataset performed worse on the low- and medium-category data than the model trained on the whole data.
+When a subset of the year 75 dataset was used as the test data, both models had the same performance, confusion matrices and classification errors. The confusion matrices show that both models misclassified 3 data points. 
+When constructing a classification rule using a smaller subset of the data, there is a higher chance that the rule will not generalize well to new data, resulting in a higher test error. Therefore, we would expect the test error from the model trained on the whole dataset to be smaller than the test error from the model trained on the partial dataset. However, the test results from both models are the exact same which could mean that the classification rule constructed using a smaller subset of the data generalise better to new data than the rule constructed using the entire dataset. Another possibility is that the test errors are similar due to chance or due to the specific characteristics of the data.
